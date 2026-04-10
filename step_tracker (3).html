@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>100k Steps Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0e10;--surface:#18181c;--surface2:#222228;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text:#f0f0f2;--muted:#888896;--faint:#444450;
+  --green:#4ade80;--amber:#fbbf24;--red:#f87171;--blue:#60a5fa;
+  --rsm:8px;
+}
+html,body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;min-height:100vh}
+.app{max-width:480px;margin:0 auto;padding:0 0 100px}
+
+.header{padding:52px 20px 24px}
+.hlabel{font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.htitle{font-size:26px;font-weight:600;line-height:1.2}
+.htitle span{color:var(--green)}
+
+.sbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 20px 20px}
+.sc{background:var(--surface);border:.5px solid var(--border);border-radius:var(--rsm);padding:12px 10px;text-align:center}
+.sv{font-size:18px;font-weight:500;color:var(--text);line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.sv.g{color:var(--green)}.sv.a{color:var(--amber)}
+.sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+
+.pwrap{padding:0 20px 24px}
+.phead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.plabel{font-size:12px;color:var(--muted)}
+.ppct{font-size:13px;color:var(--green)}
+.ptrack{height:6px;background:var(--surface2);border-radius:99px;overflow:hidden}
+.pfill{height:100%;background:var(--green);border-radius:99px;transition:width .5s}
+
+.tbtn{display:block;margin:0 20px 16px;padding:12px 16px;background:rgba(74,222,128,.08);border:.5px solid rgba(74,222,128,.25);border-radius:var(--rsm);color:var(--green);font-size:13px;font-weight:500;text-align:center;cursor:pointer}
+.shead{padding:4px 20px 10px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.wlabel{padding:10px 20px 6px;font-size:11px;letter-spacing:.08em;color:var(--faint);text-transform:uppercase}
+
+.drow{display:flex;align-items:center;padding:12px 20px;gap:12px;cursor:pointer;border-bottom:.5px solid var(--border)}
+.drow.today{background:rgba(74,222,128,.04)}
+.drow.erow{background:rgba(251,191,36,.04)}
+
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dl{background:var(--green)}.dm{background:#34d399}.db{background:var(--faint)}
+.dli{background:var(--blue)}.da{background:var(--amber)}.de{background:var(--amber)}
+.dtd{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--green)}
+
+.dinfo{flex:1;min-width:0}
+.dnrow{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.ddate{font-size:14px;font-weight:500;color:var(--text)}
+.dday{font-size:12px;color:var(--muted)}
+.tbadge{font-size:9px;background:rgba(74,222,128,.15);color:var(--green);padding:2px 5px;border-radius:4px;letter-spacing:.06em}
+.atag{font-size:11px;color:var(--muted)}
+
+.dright{text-align:right;flex-shrink:0;min-width:110px}
+.srow{display:flex;align-items:baseline;justify-content:flex-end;gap:4px}
+.sa{font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
+.sa.hit{color:var(--green)}.sa.close{color:var(--amber)}.sa.miss{color:var(--red)}.sa.empty{color:var(--faint)}
+.ssep{font-size:12px;color:var(--faint)}
+.st{font-size:13px;color:var(--faint);font-variant-numeric:tabular-nums}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border:.5px solid var(--border2);border-radius:20px 20px 0 0;padding:28px 24px 48px;width:100%;max-width:480px}
+.mhandle{width:36px;height:4px;background:var(--faint);border-radius:99px;margin:0 auto 24px}
+.mdate{font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+.mtitle{font-size:20px;font-weight:600;margin-bottom:20px}
+
+.mtargets{display:flex;gap:8px;margin-bottom:20px}
+.tblock{flex:1;background:var(--surface2);border-radius:var(--rsm);padding:12px;text-align:center}
+.tblabel{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.tbval{font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
+.tbval.g{color:var(--green)}.tbval.a{color:var(--amber)}.tbval.r{color:var(--red)}.tbval.f{color:var(--faint)}
+
+.iwrap{position:relative;margin-bottom:20px}
+.sinput{width:100%;background:var(--surface2);border:.5px solid var(--border2);border-radius:var(--rsm);color:var(--text);font-size:28px;font-weight:500;padding:18px 90px 18px 18px;outline:none;-webkit-appearance:none;appearance:none}
+.sinput:focus{border-color:var(--green)}
+.sinput::placeholder{color:var(--faint)}
+.iunit{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--muted)}
+
+.brow{display:flex;gap:10px}
+.btn{flex:1;padding:16px;border-radius:var(--rsm);font-size:15px;font-weight:500;border:none;cursor:pointer}
+.bcn{background:var(--surface2);color:var(--muted)}
+.bsv{background:var(--green);color:#0a1a0f}
+.bcl{background:transparent;border:.5px solid var(--border2);color:var(--red);font-size:13px;padding:10px;flex:0 0 auto;width:48px}
+
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:.5px solid var(--border2);color:var(--text);font-size:13px;padding:10px 18px;border-radius:99px;opacity:0;transition:all .2s;white-space:nowrap;z-index:200}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="hlabel">Training tracker</div>
+    <div class="htitle">100k steps<br><span>Jun 20, 2026</span></div>
+  </div>
+
+  <div class="sbar">
+    <div class="sc"><div class="sv g" id="s-logged">0</div><div class="sl">Days logged</div></div>
+    <div class="sc"><div class="sv" id="s-left">72</div><div class="sl">Days to go</div></div>
+    <div class="sc"><div class="sv a" id="s-rate">-</div><div class="sl">Target hit %</div></div>
+  </div>
+
+  <div class="pwrap">
+    <div class="phead"><span class="plabel">Training progress</span><span class="ppct" id="ppct">0%</span></div>
+    <div class="ptrack"><div class="pfill" id="pfill" style="width:0%"></div></div>
+  </div>
+
+  <div class="tbtn" id="todaybtn">Jump to today</div>
+  <div class="shead">Schedule</div>
+  <div id="list"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mdate" id="mdate"></div>
+    <div class="mtitle" id="mtitle"></div>
+    <div class="mtargets">
+      <div class="tblock"><div class="tblabel">Target</div><div class="tbval" id="mtarget">-</div></div>
+      <div class="tblock"><div class="tblabel">Actual</div><div class="tbval f" id="mactual">-</div></div>
+    </div>
+    <div class="iwrap">
+      <input class="sinput" id="sinput" type="number" inputmode="numeric" pattern="[0-9]*" placeholder="0" min="0" max="200000">
+      <span class="iunit">steps</span>
+    </div>
+    <div class="brow">
+      <button class="btn bcn" id="bcn">Cancel</button>
+      <button class="btn bcl" id="bcl">X</button>
+      <button class="btn bsv" id="bsv">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var PLAN = [
+  {date:"Apr 10",day:"Friday",   week:"Week 1",activity:"Lift + Baseline",target:9000},
+  {date:"Apr 11",day:"Saturday", week:"Week 1",activity:"Long Walk",       target:18000},
+  {date:"Apr 12",day:"Sunday",   week:"Week 1",activity:"Long Walk",       target:15000},
+  {date:"Apr 13",day:"Monday",   week:"Week 1",activity:"Baseline",        target:9000},
+  {date:"Apr 14",day:"Tuesday",  week:"Week 1",activity:"Lift + Baseline", target:9000},
+  {date:"Apr 15",day:"Wednesday",week:"Week 1",activity:"Lift + Baseline", target:9000},
+  {date:"Apr 16",day:"Thursday", week:"Week 1",activity:"Baseline",        target:9000},
+  {date:"Apr 17",day:"Friday",   week:"Week 1",activity:"Lift + Baseline", target:9000},
+  {date:"Apr 18",day:"Saturday", week:"Week 2",activity:"Long Walk",       target:22000},
+  {date:"Apr 19",day:"Sunday",   week:"Week 2",activity:"Long Walk",       target:18000},
+  {date:"Apr 20",day:"Monday",   week:"Week 2",activity:"Baseline",        target:9000},
+  {date:"Apr 21",day:"Tuesday",  week:"Week 2",activity:"Lift + Baseline", target:9000},
+  {date:"Apr 22",day:"Wednesday",week:"Week 2",activity:"Lift + Baseline", target:9000},
+  {date:"Apr 23",day:"Thursday", week:"Week 2",activity:"Baseline",        target:9000},
+  {date:"Apr 24",day:"Friday",   week:"Week 2",activity:"Lift + Baseline", target:9000},
+  {date:"Apr 25",day:"Saturday", week:"Week 3",activity:"Long Walk",       target:25000},
+  {date:"Apr 26",day:"Sunday",   week:"Week 3",activity:"Long Walk",       target:20000},
+  {date:"Apr 27",day:"Monday",   week:"Week 3",activity:"Baseline",        target:9000},
+  {date:"Apr 28",day:"Tuesday",  week:"Week 3",activity:"Lift + Baseline", target:9000},
+  {date:"Apr 29",day:"Wednesday",week:"Week 3",activity:"Lift + Baseline", target:9000},
+  {date:"Apr 30",day:"Thursday", week:"Week 3",activity:"Baseline",        target:9000},
+  {date:"May 1", day:"Friday",   week:"Week 3",activity:"Lift + Baseline", target:9000},
+  {date:"May 2", day:"Saturday", week:"Week 4",activity:"Long Walk",       target:28000},
+  {date:"May 3", day:"Sunday",   week:"Week 4",activity:"Long Walk",       target:22000},
+  {date:"May 4", day:"Monday",   week:"Week 4",activity:"Lift + Baseline", target:9000},
+  {date:"May 5", day:"Tuesday",  week:"Week 4",activity:"Baseline",        target:9000},
+  {date:"May 6", day:"Wednesday",week:"Week 4",activity:"Lift + Baseline", target:9000},
+  {date:"May 7", day:"Thursday", week:"Week 4",activity:"Baseline",        target:9000},
+  {date:"May 8", day:"Friday",   week:"Week 4",activity:"Lift + Baseline", target:9000},
+  {date:"May 9", day:"Saturday", week:"Week 5",activity:"Long Walk",       target:32000},
+  {date:"May 10",day:"Sunday",   week:"Week 5",activity:"Long Walk",       target:25000},
+  {date:"May 11",day:"Monday",   week:"Week 5",activity:"Lift + Baseline", target:9000},
+  {date:"May 12",day:"Tuesday",  week:"Week 5",activity:"Baseline",        target:9000},
+  {date:"May 13",day:"Wednesday",week:"Week 5",activity:"Lift + Baseline", target:9000},
+  {date:"May 14",day:"Thursday", week:"Week 5",activity:"Baseline",        target:9000},
+  {date:"May 15",day:"Friday",   week:"Week 5",activity:"Lift + Baseline", target:9000},
+  {date:"May 16",day:"Saturday", week:"Week 6",activity:"Away",            target:9000},
+  {date:"May 17",day:"Sunday",   week:"Week 6",activity:"Away",            target:9000},
+  {date:"May 18",day:"Monday",   week:"Week 6",activity:"Away",            target:9000},
+  {date:"May 19",day:"Tuesday",  week:"Week 6",activity:"Baseline",        target:9000},
+  {date:"May 20",day:"Wednesday",week:"Week 6",activity:"Lift + Baseline", target:9000},
+  {date:"May 21",day:"Thursday", week:"Week 6",activity:"Baseline",        target:9000},
+  {date:"May 22",day:"Friday",   week:"Week 6",activity:"Lift + Baseline", target:9000},
+  {date:"May 23",day:"Saturday", week:"Week 7",activity:"Long Walk",       target:35000},
+  {date:"May 24",day:"Sunday",   week:"Week 7",activity:"Long Walk",       target:28000},
+  {date:"May 25",day:"Monday",   week:"Week 7",activity:"Lift + Baseline", target:9000},
+  {date:"May 26",day:"Tuesday",  week:"Week 7",activity:"Baseline",        target:9000},
+  {date:"May 27",day:"Wednesday",week:"Week 7",activity:"Lift + Baseline", target:9000},
+  {date:"May 28",day:"Thursday", week:"Week 7",activity:"Baseline",        target:9000},
+  {date:"May 29",day:"Friday",   week:"Week 7",activity:"Lift + Baseline", target:9000},
+  {date:"May 30",day:"Saturday", week:"Week 8",activity:"Away",            target:9000},
+  {date:"May 31",day:"Sunday",   week:"Week 8",activity:"Baseline",        target:9000},
+  {date:"Jun 1", day:"Monday",   week:"Week 8",activity:"Lift + Baseline", target:9000},
+  {date:"Jun 2", day:"Tuesday",  week:"Week 8",activity:"Baseline",        target:9000},
+  {date:"Jun 3", day:"Wednesday",week:"Week 8",activity:"Lift + Baseline", target:9000},
+  {date:"Jun 4", day:"Thursday", week:"Week 8",activity:"Baseline",        target:9000},
+  {date:"Jun 5", day:"Friday",   week:"Week 8",activity:"Lift + Baseline", target:9000},
+  {date:"Jun 6", day:"Saturday", week:"Week 8",activity:"Long Walk",       target:38000},
+  {date:"Jun 7", day:"Sunday",   week:"Week 8",activity:"Long Walk",       target:30000},
+  {date:"Jun 8", day:"Monday",   week:"Week 9",activity:"Lift + Baseline", target:9000},
+  {date:"Jun 9", day:"Tuesday",  week:"Week 9",activity:"Baseline",        target:9000},
+  {date:"Jun 10",day:"Wednesday",week:"Week 9",activity:"Lift + Baseline", target:9000},
+  {date:"Jun 11",day:"Thursday", week:"Week 9",activity:"Baseline",        target:9000},
+  {date:"Jun 12",day:"Friday",   week:"Week 9",activity:"Lift + Baseline", target:9000},
+  {date:"Jun 13",day:"Saturday", week:"Week 9",activity:"Long Walk",       target:28000},
+  {date:"Jun 14",day:"Sunday",   week:"Week 9",activity:"Long Walk",       target:20000},
+  {date:"Jun 15",day:"Monday",   week:"Week 10",activity:"Lift + Baseline",target:9000},
+  {date:"Jun 16",day:"Tuesday",  week:"Week 10",activity:"Baseline",       target:9000},
+  {date:"Jun 17",day:"Wednesday",week:"Week 10",activity:"Lift + Baseline",target:9000},
+  {date:"Jun 18",day:"Thursday", week:"Week 10",activity:"Moderate Walk",  target:15000},
+  {date:"Jun 19",day:"Friday",   week:"Week 10",activity:"Baseline",       target:9000},
+  {date:"Jun 20",day:"Saturday", week:"Week 10",activity:"EVENT",          target:100000}
+];
+
+var KEY = '100k_v1';
+var cidx = null;
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) { return {}; }
+}
+function save(d) {
+  try { localStorage.setItem(KEY, JSON.stringify(d)); } catch(e) {}
+}
+function fmt(n) {
+  return Number(n).toLocaleString();
+}
+function isBase(a) {
+  return a === 'Baseline' || a === 'Lift + Baseline' || a === 'Away';
+}
+function tdisplay(item) {
+  return isBase(item.activity) ? '8,000-10,000' : fmt(item.target);
+}
+function dotCls(a) {
+  if (a === 'Long Walk') return 'dot dl';
+  if (a === 'Moderate Walk') return 'dot dm';
+  if (a === 'Away') return 'dot da';
+  if (a === 'EVENT') return 'dot de';
+  if (a.indexOf('Lift') >= 0) return 'dot dli';
+  return 'dot db';
+}
+
+function todayIdx() {
+  var now = new Date();
+  var mo = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5};
+  for (var i = 0; i < PLAN.length; i++) {
+    var parts = PLAN[i].date.split(' ');
+    var pd = new Date(2026, mo[parts[0]], parseInt(parts[1]));
+    if (pd.getFullYear() === now.getFullYear() && pd.getMonth() === now.getMonth() && pd.getDate() === now.getDate()) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function renderList() {
+  var data = load();
+  var ti = todayIdx();
+  var list = document.getElementById('list');
+  list.innerHTML = '';
+  var curWeek = null;
+
+  for (var i = 0; i < PLAN.length; i++) {
+    var item = PLAN[i];
+
+    if (item.week !== curWeek) {
+      curWeek = item.week;
+      var wl = document.createElement('div');
+      wl.className = 'wlabel';
+      wl.textContent = item.week + (item.activity === 'EVENT' ? ' - event week' : '');
+      list.appendChild(wl);
+    }
+
+    var actual = data[i];
+    var isToday = (i === ti);
+
+    var row = document.createElement('div');
+    var rowCls = 'drow';
+    if (isToday) rowCls += ' today';
+    if (item.activity === 'EVENT') rowCls += ' erow';
+    row.className = rowCls;
+    row.id = 'r' + i;
+    (function(idx) { row.onclick = function() { openModal(idx); }; })(i);
+
+    var dot = document.createElement('div');
+    var dotCls2 = dotCls(item.activity);
+    if (isToday) dotCls2 += ' dtd';
+    dot.className = dotCls2;
+
+    var info = document.createElement('div');
+    info.className = 'dinfo';
+
+    var nr = document.createElement('div');
+    nr.className = 'dnrow';
+
+    var dd = document.createElement('span');
+    dd.className = 'ddate';
+    dd.textContent = item.date;
+    nr.appendChild(dd);
+
+    var dw = document.createElement('span');
+    dw.className = 'dday';
+    dw.textContent = item.day.slice(0, 3);
+    nr.appendChild(dw);
+
+    if (isToday) {
+      var tb = document.createElement('span');
+      tb.className = 'tbadge';
+      tb.textContent = 'today';
+      nr.appendChild(tb);
+    }
+
+    info.appendChild(nr);
+
+    var at = document.createElement('div');
+    at.className = 'atag';
+    at.textContent = item.activity;
+    info.appendChild(at);
+
+    var right = document.createElement('div');
+    right.className = 'dright';
+
+    var sr = document.createElement('div');
+    sr.className = 'srow';
+
+    var sa = document.createElement('span');
+    var stepsClass = 'sa empty';
+    var stepsText = '-';
+    if (actual !== undefined) {
+      var ratio = actual / item.target;
+      stepsText = fmt(actual);
+      stepsClass = 'sa ' + (ratio >= 0.95 ? 'hit' : ratio >= 0.75 ? 'close' : 'miss');
+    }
+    sa.className = stepsClass;
+    sa.textContent = stepsText;
+    sr.appendChild(sa);
+
+    var sep = document.createElement('span');
+    sep.className = 'ssep';
+    sep.textContent = '/';
+    sr.appendChild(sep);
+
+    var st = document.createElement('span');
+    st.className = 'st';
+    st.textContent = tdisplay(item);
+    sr.appendChild(st);
+
+    right.appendChild(sr);
+
+    row.appendChild(dot);
+    row.appendChild(info);
+    row.appendChild(right);
+    list.appendChild(row);
+  }
+
+  updateStats(data, ti);
+}
+
+function updateStats(data, ti) {
+  var logged = Object.keys(data).length;
+  var left = ti >= 0 ? Math.max(0, PLAN.length - 1 - ti) : PLAN.length;
+  var hits = 0, total = 0;
+  for (var k in data) {
+    var item = PLAN[parseInt(k)];
+    if (item) { total++; if (data[k] >= item.target * 0.95) hits++; }
+  }
+  document.getElementById('s-logged').textContent = logged;
+  document.getElementById('s-left').textContent = left;
+  document.getElementById('s-rate').textContent = total > 0 ? Math.round(hits / total * 100) + '%' : '-';
+  var pct = Math.round(logged / PLAN.length * 100);
+  document.getElementById('ppct').textContent = pct + '%';
+  document.getElementById('pfill').style.width = pct + '%';
+}
+
+function scrollToToday() {
+  var ti = todayIdx();
+  var el = document.getElementById('r' + (ti >= 0 ? ti : 0));
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function openModal(i) {
+  cidx = i;
+  var item = PLAN[i];
+  var data = load();
+  var actual = data[i];
+
+  document.getElementById('mdate').textContent = item.date + ' - ' + item.day;
+  document.getElementById('mtitle').textContent = item.activity;
+  document.getElementById('mtarget').textContent = tdisplay(item);
+
+  var ma = document.getElementById('mactual');
+  if (actual !== undefined) {
+    ma.textContent = fmt(actual);
+    var r = actual / item.target;
+    ma.className = 'tbval ' + (r >= 0.95 ? 'g' : r >= 0.75 ? 'a' : 'r');
+  } else {
+    ma.textContent = '-';
+    ma.className = 'tbval f';
+  }
+
+  var inp = document.getElementById('sinput');
+  inp.value = actual !== undefined ? actual : '';
+  document.getElementById('overlay').className = 'overlay open';
+  setTimeout(function() { inp.focus(); }, 100);
+}
+
+document.getElementById('sinput').addEventListener('input', function() {
+  var v = parseInt(this.value);
+  var ma = document.getElementById('mactual');
+  if (v > 0 && cidx !== null) {
+    ma.textContent = fmt(v);
+    var r = v / PLAN[cidx].target;
+    ma.className = 'tbval ' + (r >= 0.95 ? 'g' : r >= 0.75 ? 'a' : 'r');
+  } else {
+    ma.textContent = '-';
+    ma.className = 'tbval f';
+  }
+});
+
+function closeModal() {
+  document.getElementById('overlay').className = 'overlay';
+  cidx = null;
+}
+
+document.getElementById('overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+function saveEntry() {
+  var v = parseInt(document.getElementById('sinput').value);
+  if (isNaN(v) || v < 0) { showToast('Enter a valid step count'); return; }
+  var data = load();
+  data[cidx] = v;
+  save(data);
+  closeModal();
+  renderList();
+  showToast('Saved - ' + fmt(v) + ' steps');
+}
+
+function clearEntry() {
+  var data = load();
+  delete data[cidx];
+  save(data);
+  closeModal();
+  renderList();
+  showToast('Entry cleared');
+}
+
+var toastTimer;
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { t.className = 'toast'; }, 2200);
+}
+
+document.getElementById('todaybtn').onclick = scrollToToday;
+document.getElementById('bcn').onclick = closeModal;
+document.getElementById('bcl').onclick = clearEntry;
+document.getElementById('bsv').onclick = saveEntry;
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Enter' && cidx !== null) saveEntry();
+});
+
+renderList();
+</script>
+</body>
+</html>
